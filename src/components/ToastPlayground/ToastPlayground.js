@@ -1,61 +1,76 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
-import Button from '../Button';
+import Button from "../Button";
 
-import styles from './ToastPlayground.module.css';
+import styles from "./ToastPlayground.module.css";
+import ToastShelf from "../ToastShelf/ToastShelf";
+import { useToastsContext } from "../ToastProvider/ToastProvider";
+import LabeledTextArea from "./LabeledTextArea";
+import Variants from "./Variants";
 
-const VARIANT_OPTIONS = ['notice', 'warning', 'success', 'error'];
+function useEscapeKey(callback) {
+  const callbackRef = useRef();
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    function handleEscape(event) {
+      if (event.code === "Escape" && callbackRef.current) {
+        callbackRef.current();
+      }
+    }
+    document.addEventListener("keyup", handleEscape);
+    return () => {
+      document.removeEventListener("keyup", handleEscape);
+    };
+  }, []);
+}
 
 function ToastPlayground() {
+  const [variant, setVariant] = useState("notice");
+  const [message, setMessage] = useState("");
+  const { toasts, createToast, deleteToastById, setToasts } =
+    useToastsContext();
+
+  const createMessage = (event) => {
+    event.preventDefault();
+    createToast(variant, message);
+  };
+
+  useEscapeKey(() => {
+    setToasts([]);
+  });
+
   return (
     <div className={styles.wrapper}>
       <header>
         <img alt="Cute toast mascot" src="/toast.png" />
         <h1>Toast Playground</h1>
       </header>
-
-      <div className={styles.controlsWrapper}>
-        <div className={styles.row}>
-          <label
-            htmlFor="message"
-            className={styles.label}
-            style={{ alignSelf: 'baseline' }}
-          >
-            Message
-          </label>
-          <div className={styles.inputWrapper}>
-            <textarea id="message" className={styles.messageInput} />
-          </div>
-        </div>
-
-        <div className={styles.row}>
-          <div className={styles.label}>Variant</div>
-          <div
-            className={`${styles.inputWrapper} ${styles.radioWrapper}`}
-          >
-            <label htmlFor="variant-notice">
-              <input
-                id="variant-notice"
-                type="radio"
-                name="variant"
-                value="notice"
-              />
-              notice
-            </label>
-
-            {/* TODO Other Variant radio buttons here */}
-          </div>
-        </div>
-
+      <ToastShelf toasts={toasts} onClose={deleteToastById} />
+      <form onSubmit={createMessage} className={styles.controlsWrapper}>
+        <LabeledTextArea
+          className={styles.row}
+          value={message}
+          onChange={(event) => {
+            setMessage(event.target.value);
+          }}
+          label="Message"
+        />
+        <Variants
+          className={styles.row}
+          selectedVariant={variant}
+          onChange={setVariant}
+        />
         <div className={styles.row}>
           <div className={styles.label} />
-          <div
-            className={`${styles.inputWrapper} ${styles.radioWrapper}`}
-          >
-            <Button>Pop Toast!</Button>
+          <div className={`${styles.inputWrapper} ${styles.radioWrapper}`}>
+            <Button type="submit">Pop Toast!</Button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
